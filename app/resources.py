@@ -1,6 +1,7 @@
-from flask_restful import Resource, abort
+from flask_restful import Resource, abort, marshal_with
 from app.parsers import film_parser, film_update_parser
 from app.models import Movie
+from app.fields import film_fields
 
 FILMS = [
     Movie('film1', 'Psycho', ['Thriller', 'Mystery'], 9.2, 'English'),
@@ -20,7 +21,12 @@ def find_film(film_id):
         return None
 
 
+# marshal_with decorator is used to fomat the reponse data with specified output field format
+# envelope: attribute used as key of the result
+
+
 class Film(Resource):
+    @marshal_with(film_fields)
     def get(self, film_id=None):
         """
             Return film details for the given film_id
@@ -29,8 +35,9 @@ class Film(Resource):
         if not film:
             abort(400, message="{} doesn't exists".format(film_id))
 
-        return film.__dict__
+        return film
 
+    @marshal_with(film_fields)
     def put(self, film_id=None):
         """
             Update film details for the given film_id
@@ -42,7 +49,7 @@ class Film(Resource):
         args = film_update_parser.parse_args()
         film.update(args['name'], args['genres'],
                     args['rating'], args['language'])
-        return film.__dict__, 201
+        return film, 201
 
     def delete(self, film_id=None):
         """
@@ -57,12 +64,14 @@ class Film(Resource):
 
 
 class Films(Resource):
+    @marshal_with(film_fields)
     def get(self):
         """
             Return all films
         """
-        return list(map(lambda f: f.__dict__, FILMS))
+        return FILMS
 
+    @marshal_with(film_fields)
     def post(self):
         """
                 Insert new film
@@ -74,4 +83,4 @@ class Films(Resource):
         film = Movie(film_id, args['name'], args['genres'],
                      args['rating'], args['language'])
         FILMS.append(film)
-        return film.__dict__, 201
+        return film, 201

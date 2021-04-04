@@ -1,19 +1,23 @@
 from flask_restful import Resource, abort
 from app.parsers import film_parser, film_update_parser
+from app.models import Movie
 
-FILMS = {
-    'film1': {'name': 'Psycho', 'genres': ['Thriller', 'Mystery'], 'rating': 9.2, 'language': 'English'},
-    'film2': {'name': 'Raid-Redemption', 'genres': ['Action'], 'rating': 8.8, 'language': 'English'},
-    'film3': {'name': 'Kumbalangi Nights', 'genres': ['Romance', 'Drama'], 'rating': 9, 'language': 'Malayalam'},
-}
+FILMS = [
+    Movie('film1', 'Psycho', ['Thriller', 'Mystery'], 9.2, 'English'),
+    Movie('film2', 'Raid-Redemption', ['Action'], 8.8, 'English'),
+    Movie('film3', 'Kumbalangi Nights', ['Romance', 'Drama'], 9, 'Malayalam')
+]
 
 
-def abort_if_film_doesnt_exist(film_id):
+def find_film(film_id):
     """
-        Abort request when either film_id does not exist
+        Retrieve film with film_id from films if present, else return None
     """
-    if film_id not in FILMS:
-        abort(400, message="{} doesn't exists".format(film_id))
+    film = list(filter(lambda f: f.film_id == film_id, FILMS))
+    if len(film):
+        return film[0]
+    else:
+        return None
 
 
 class Film(Resource):
@@ -21,27 +25,34 @@ class Film(Resource):
         """
             Return film details for the given film_id
         """
-        abort_if_film_doesnt_exist(film_id)
-        return FILMS[film_id]
+        film = find_film(film_id)
+        if not film:
+            abort(400, message="{} doesn't exists".format(film_id))
+
+        return film.__dict__
 
     def put(self, film_id=None):
         """
             Update film details for the given film_id
         """
-        abort_if_film_doesnt_exist(film_id)
+        film = find_film(film_id)
+        if not film:
+            abort(400, message="{} doesn't exists".format(film_id))
+
         args = film_update_parser.parse_args()
-        print(args)
-        for key, value in args.items():
-            if value:
-                FILMS[film_id][key] = value
-        return FILMS[film_id], 201
+        film.update(args['name'], args['genres'],
+                    args['rating'], args['language'])
+        return film.__dict__, 201
 
     def delete(self, film_id=None):
         """
             Delete film details for the given film_id
         """
-        abort_if_film_doesnt_exist(film_id)
-        del FILMS[film_id]
+        film = find_film(film_id)
+        if not film:
+            abort(400, message="{} doesn't exists".format(film_id))
+
+        FILMS.remove(film)
         return {'message': '{} deleted'.format(film_id)}, 204
 
 
@@ -50,7 +61,7 @@ class Films(Resource):
         """
             Return all films
         """
-        return FILMS
+        return list(map(lambda f: f.__dict__, FILMS))
 
     def post(self):
         """
@@ -58,12 +69,9 @@ class Films(Resource):
             """
         # strict=True: raise 400 in case of any extra argument
         args = film_parser.parse_args(strict=True)
-        film_id = int(max(FILMS.keys()).lstrip('film')) + 1
-        film_id = 'film{}'.format(film_id)
-        FILMS[film_id] = {
-            'name': args['name'],
-            'genres': args['genres'],
-            'rating': args['rating'],
-            'language': args['language'],
-        }
-        return FILMS[film_id], 201
+        film_id = 'film{}'.format(
+            max(list(map(lambda f: int(f.film_id.lstrip('film')), FILMS))) + 1)
+        film = Movie(film_id, args['name'], args['genres'],
+                     args['rating'], args['language'])
+        FILMS.append(film)
+        return film.__dict__, 201

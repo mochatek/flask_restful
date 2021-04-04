@@ -60,7 +60,7 @@ class Film(Resource):
             abort(400, message="{} doesn't exists".format(film_id))
 
         FILMS.remove(film)
-        return {'message': '{} deleted'.format(film_id)}, 204
+        return {'message': '{} deleted'.format(film_id)}, 200
 
 
 class Films(Resource):

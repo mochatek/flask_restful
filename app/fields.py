@@ -24,7 +24,8 @@ film_fields = {
     'name': fields.String,
     'genres': fields.List(fields.String),
     'rating': Rating(attribute='rating'),
-    'language': fields.String
+    'language': fields.String,
+    'uri': fields.Url(endpoint='film', absolute=True)
 }
 
 

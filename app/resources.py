@@ -2,6 +2,16 @@ from flask_restful import Resource, abort, marshal_with
 from app.parsers import film_parser, film_update_parser
 from app.models import Movie
 from app.fields import film_fields
+from functools import wraps
+
+
+def cache(f):
+    @wraps(f)
+    def cacher(*args, **kwargs):
+        # caching stuff
+        pass
+    return cacher
+
 
 FILMS = [
     Movie('film1', 'Psycho', ['Thriller', 'Mystery'], 9.2, 'English'),
@@ -26,6 +36,13 @@ def find_film(film_id):
 
 
 class Film(Resource):
+    # Decorators can be specified here in list, will be applied to all methods and inherited resources
+    method_decorators = [cache]
+
+    # Alternatively, you can specify a dictionary of iterables that map to HTTP methods and the decorators
+    # will only apply to matching requests.
+    method_decorators = {'get': [cache]}
+
     @marshal_with(film_fields)
     def get(self, film_id=None):
         """
